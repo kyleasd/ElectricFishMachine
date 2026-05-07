@@ -121,6 +121,66 @@ namespace WaterBubbleMod
                 return fishIds;
             }
 
+            bool isSecretWoods = IsSecretWoodsLocation(loc);
+            if (isSecretWoods)
+            {
+                int[] secretWoodsFish = new int[] {
+                    142, // 鲤鱼 (Carp) - 全年
+                    734  // 木跃鱼 (Woodskip) - 全年
+                };
+
+                fishIds.AddRange(secretWoodsFish);
+
+                if (random.Next(100) < 15)
+                {
+                    int[] junkItems = new int[] { 152, 153, 157 };
+                    fishIds.Add(junkItems[random.Next(junkItems.Length)]);
+                }
+
+                return fishIds;
+            }
+
+            bool isSewer = IsSewerLocation(loc);
+            if (isSewer)
+            {
+                int[] sewerFish = new int[] {
+                    682, // 变种鲤鱼 (Mutant Carp) - 全年
+                    157  // 白藻 (White Algae) - 全年
+                };
+
+                fishIds.AddRange(sewerFish);
+
+                return fishIds;
+            }
+
+            bool isMutantBugLair = IsMutantBugLairLocation(loc);
+            if (isMutantBugLair)
+            {
+                int[] mutantBugLairFish = new int[] {
+                    142, // 鲤鱼 (Carp) - 全年
+                    796, // 史莱姆鱼 (Slimejack) - 全年
+                    157  // 白藻 (White Algae) - 全年
+                };
+
+                fishIds.AddRange(mutantBugLairFish);
+
+                return fishIds;
+            }
+
+            bool isWitchSwamp = IsWitchSwampLocation(loc);
+            if (isWitchSwamp)
+            {
+                int[] witchSwampFish = new int[] {
+                    795, // 虚空鲑鱼 (Void Salmon) - 全年
+                    143, // 鲶鱼 (Catfish) - 春季/秋季，6:00-0:00，雨天
+                    157  // 白藻 (White Algae) - 全年
+                };
+
+                fishIds.AddRange(witchSwampFish);
+
+                return fishIds;
+            }
+
             int[] saltwaterFish = new int[] {
                 128, // 河豚 (Pufferfish) - 夏季
                 129, // 鳀鱼 (Anchovy) - 春季/秋季
@@ -136,8 +196,22 @@ namespace WaterBubbleMod
                 155, // 大海参 (Super Cucumber) - 夏季/秋季/冬季
                 267, // 比目鱼 (Flounder) - 春季
                 701, // 罗非鱼 (Tilapia) - 夏季/秋季
-                705, // 青花鱼 (Albacore) - 夏季/秋季
-                708  // 大比目鱼 (Halibut) - 春季/冬季
+                705, // 青花鱼 (Albacore) - 秋季/冬季
+                708, // 大比目鱼 (Halibut) - 春季/冬季
+                134, // 海凝胶 (Sea Jelly) - 全年
+                372, // 蛤蜊 (Clam) - 全年
+                715, // 龙虾 (Lobster) - 全年
+                717, // 螃蟹 (Crab) - 全年
+                718, // 鸟蛤 (Cockle) - 全年
+                719, // 贻贝 (Mussel) - 全年
+                720, // 虾 (Shrimp) - 全年
+                722, // 滨螺 (Periwinkle) - 全年
+                723, // 牡蛎 (Oyster) - 全年
+                798, // 午夜鱿鱼 (Midnight Squid) - 冬季夜市
+                800, // 水滴鱼 (Blobfish) - 冬季夜市
+                799, // 幽灵鱼 (Spook Fish) - 冬季夜市
+                159, // 绯红鱼 (Crimsonfish) - 夏季
+                898  // 绯红鱼之子 (Son of Crimsonfish) - 全年
             };
 
             int[] freshwaterFish = new int[] {
@@ -161,7 +235,19 @@ namespace WaterBubbleMod
                 702, // 鲢鱼 (Chub) - 全年，全天
                 704, // 麻哈脂鲤 (Dorado) - 夏季，6:00-19:00
                 706, // 西鲱 (Shad) - 春季/夏季/秋季，9:00-2:00，雨天
-                707  // 蛇齿单线鱼 (Lingcod) - 冬季，全天
+                707, // 蛇齿单线鱼 (Lingcod) - 冬季，全天
+                153, // 绿藻 (Green Algae) - 全年
+                716, // 小龙虾 (Crayfish) - 全年
+                721, // 蜗牛 (Snail) - 全年
+                734, // 木跃鱼 (Woodskip) - 全年
+                873, // 河凝胶 (River Jelly) - 全年
+                -1, // 虾虎鱼 (Goby) - 使用字符串ID
+                163, // 传说之鱼 (Legend) - 春季
+                160, // 鮟鱇鱼 (Angler) - 秋季
+                775, // 冰川鱼 (Glacierfish) - 冬季
+                899, // 雌鮟鱇鱼 (Ms. Angler) - 全年
+                900, // 传说之鱼二代 (Legend II) - 全年
+                902  // 小冰川鱼 (Glacierfish Jr.) - 全年
             };
 
             bool isSaltwater = IsSaltwaterLocation(loc);
@@ -238,6 +324,30 @@ namespace WaterBubbleMod
             return locationName.Contains("farm") || locationName == "farm";
         }
 
+        public static bool IsSecretWoodsLocation(GameLocation loc)
+        {
+            string locationName = loc.Name.ToLower();
+            return locationName.Contains("secret") && locationName.Contains("wood");
+        }
+
+        public static bool IsSewerLocation(GameLocation loc)
+        {
+            string locationName = loc.Name.ToLower();
+            return locationName.Contains("sewer");
+        }
+
+        public static bool IsMutantBugLairLocation(GameLocation loc)
+        {
+            string locationName = loc.Name.ToLower();
+            return locationName.Contains("mutant") || locationName.Contains("bug");
+        }
+
+        public static bool IsWitchSwampLocation(GameLocation loc)
+        {
+            string locationName = loc.Name.ToLower();
+            return locationName.Contains("witch") || locationName.Contains("swamp");
+        }
+
         public static bool IsFishAvailableInSeason(int fishId, string season)
         {
             Dictionary<int, string[]> fishSeasons = new Dictionary<int, string[]>
@@ -252,9 +362,9 @@ namespace WaterBubbleMod
                 { 171, new string[] { "spring", "summer", "fall", "winter" } },
                 { 172, new string[] { "spring", "summer", "fall", "winter" } },
 
-                { 872, new string[] { "spring", "summer", "fall", "winter" } },
                 { 873, new string[] { "spring", "summer", "fall", "winter" } },
                 { 874, new string[] { "spring", "summer", "fall", "winter" } },
+                { -1, new string[] { "spring", "summer", "fall", "winter" } }, // 虾虎鱼
 
                 { 128, new string[] { "summer" } },
                 { 129, new string[] { "spring", "fall" } },
@@ -270,7 +380,7 @@ namespace WaterBubbleMod
                 { 155, new string[] { "summer", "fall", "winter" } },
                 { 267, new string[] { "spring" } },
                 { 701, new string[] { "summer", "fall" } },
-                { 705, new string[] { "summer", "fall" } },
+                { 705, new string[] { "fall", "winter" } },
                 { 708, new string[] { "spring", "winter" } },
 
                 { 132, new string[] { "spring", "summer", "fall", "winter" } },
@@ -303,7 +413,33 @@ namespace WaterBubbleMod
 
                 { 836, new string[] { "spring", "summer", "fall", "winter" } },
                 { 837, new string[] { "spring", "summer", "fall", "winter" } },
-                { 838, new string[] { "spring", "summer", "fall", "winter" } }
+                { 838, new string[] { "spring", "summer", "fall", "winter" } },
+
+                { 134, new string[] { "spring", "summer", "fall", "winter" } },
+                { 372, new string[] { "spring", "summer", "fall", "winter" } },
+                { 715, new string[] { "spring", "summer", "fall", "winter" } },
+                { 717, new string[] { "spring", "summer", "fall", "winter" } },
+                { 718, new string[] { "spring", "summer", "fall", "winter" } },
+                { 719, new string[] { "spring", "summer", "fall", "winter" } },
+                { 720, new string[] { "spring", "summer", "fall", "winter" } },
+                { 722, new string[] { "spring", "summer", "fall", "winter" } },
+                { 723, new string[] { "spring", "summer", "fall", "winter" } },
+                { 798, new string[] { "winter" } },
+                { 800, new string[] { "winter" } },
+                { 799, new string[] { "winter" } },
+                { 682, new string[] { "spring", "summer", "fall", "winter" } },
+                { 734, new string[] { "spring", "summer", "fall", "winter" } },
+                { 796, new string[] { "spring", "summer", "fall", "winter" } },
+                { 795, new string[] { "spring", "summer", "fall", "winter" } },
+                { 163, new string[] { "spring" } },
+                { 159, new string[] { "summer" } },
+                { 160, new string[] { "fall" } },
+                { 775, new string[] { "winter" } },
+                { 898, new string[] { "spring", "summer", "fall", "winter" } },
+                { 899, new string[] { "spring", "summer", "fall", "winter" } },
+                { 900, new string[] { "spring", "summer", "fall", "winter" } },
+                { 902, new string[] { "spring", "summer", "fall", "winter" } },
+                { 901, new string[] { "spring", "summer", "fall", "winter" } }
             };
 
             if (fishSeasons.TryGetValue(fishId, out string[]? seasons) && seasons != null)
@@ -328,9 +464,9 @@ namespace WaterBubbleMod
                 { 171, new Tuple<int, int>(0, 24) },
                 { 172, new Tuple<int, int>(0, 24) },
 
-                { 872, new Tuple<int, int>(0, 24) },
                 { 873, new Tuple<int, int>(0, 24) },
                 { 874, new Tuple<int, int>(0, 24) },
+                { -1, new Tuple<int, int>(0, 24) }, // 虾虎鱼
 
                 { 128, new Tuple<int, int>(12, 16) },
                 { 129, new Tuple<int, int>(0, 24) },
@@ -379,7 +515,33 @@ namespace WaterBubbleMod
 
                 { 836, new Tuple<int, int>(0, 24) },
                 { 837, new Tuple<int, int>(0, 24) },
-                { 838, new Tuple<int, int>(0, 24) }
+                { 838, new Tuple<int, int>(0, 24) },
+
+                { 134, new Tuple<int, int>(0, 24) },
+                { 372, new Tuple<int, int>(0, 24) },
+                { 715, new Tuple<int, int>(0, 24) },
+                { 717, new Tuple<int, int>(0, 24) },
+                { 718, new Tuple<int, int>(0, 24) },
+                { 719, new Tuple<int, int>(0, 24) },
+                { 720, new Tuple<int, int>(0, 24) },
+                { 722, new Tuple<int, int>(0, 24) },
+                { 723, new Tuple<int, int>(0, 24) },
+                { 798, new Tuple<int, int>(0, 24) },
+                { 800, new Tuple<int, int>(0, 24) },
+                { 799, new Tuple<int, int>(0, 24) },
+                { 682, new Tuple<int, int>(0, 24) },
+                { 734, new Tuple<int, int>(0, 24) },
+                { 796, new Tuple<int, int>(0, 24) },
+                { 795, new Tuple<int, int>(0, 24) },
+                { 163, new Tuple<int, int>(0, 24) },
+                { 159, new Tuple<int, int>(0, 24) },
+                { 160, new Tuple<int, int>(0, 24) },
+                { 775, new Tuple<int, int>(0, 24) },
+                { 898, new Tuple<int, int>(0, 24) },
+                { 899, new Tuple<int, int>(0, 24) },
+                { 900, new Tuple<int, int>(0, 24) },
+                { 902, new Tuple<int, int>(0, 24) },
+                { 901, new Tuple<int, int>(0, 24) }
             };
 
             List<int> filteredFish = new List<int>();

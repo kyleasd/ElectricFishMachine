@@ -119,6 +119,12 @@ namespace WaterBubbleMod
 
         private void CreateFishJumpAnimation(GameLocation loc, float x, float y)
         {
+            // 检查游戏是否暂停（鼠标移出窗口或有菜单打开）
+            if (Game1.activeClickableMenu != null || (Game1.options.pauseWhenOutOfFocus && !Game1.game1.IsActive))
+            {
+                return;
+            }
+
             string season = Game1.currentSeason;
             int currentHour = Game1.timeOfDay / 100;
             bool isGingerIsland = FishDataHelper.IsGingerIslandLocation(loc);
@@ -143,8 +149,51 @@ namespace WaterBubbleMod
                 return;
             }
 
-            int fishId = availableFishIds[random.Next(availableFishIds.Count)];
-            var fishItem = ItemRegistry.Create("(O)" + fishId);
+            // 传说鱼ID列表
+            HashSet<int> legendaryFishIds = new HashSet<int> { 163, 159, 160, 775, 898, 899, 900, 902 };
+
+            // 分离传说鱼和普通鱼
+            List<int> legendaryFish = availableFishIds.Where(id => legendaryFishIds.Contains(id)).ToList();
+            List<int> normalFish = availableFishIds.Where(id => !legendaryFishIds.Contains(id)).ToList();
+
+            int fishId;
+
+            // 传说鱼0.01%概率生成
+            if (legendaryFish.Count > 0 && random.Next(10000) < 1)
+            {
+                fishId = legendaryFish[random.Next(legendaryFish.Count)];
+            }
+            else if (normalFish.Count > 0)
+            {
+                fishId = normalFish[random.Next(normalFish.Count)];
+            }
+            else
+            {
+                fishId = availableFishIds[random.Next(availableFishIds.Count)];
+            }
+            Item fishItem;
+
+            if (fishId == 134)
+            {
+                fishItem = ItemRegistry.Create("(O)SeaJelly");
+            }
+            else if (fishId == 873)
+            {
+                fishItem = ItemRegistry.Create("(O)RiverJelly");
+            }
+            else if (fishId == 874)
+            {
+                fishItem = ItemRegistry.Create("(O)CaveJelly");
+            }
+            else if (fishId == -1)
+            {
+                fishItem = ItemRegistry.Create("(O)Goby");
+            }
+            else
+            {
+                fishItem = ItemRegistry.Create("(O)" + fishId);
+            }
+
             if (fishItem == null)
             {
                 return;
