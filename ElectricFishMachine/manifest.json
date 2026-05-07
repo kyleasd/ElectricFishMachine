@@ -1,0 +1,10 @@
+{
+  "Name": "ElectricFishMachine",
+  "Author": "鹈鹕镇的小凯",
+  "Version": "1.0.0",
+  "Description": "电鱼机",
+  "UniqueID": "Kyle.ElectricFishMachine",
+  "EntryDll": "ElectricFishMachine.dll",
+  "MinimumApiVersion": "4.0.0",
+  "UpdateKeys": []
+}

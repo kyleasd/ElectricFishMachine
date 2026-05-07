@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PlatformTarget>x64</PlatformTarget>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MonoGame.Framework.WindowsDX" Version="3.8.4.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="MonoGame.Framework">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Stardew Valley\MonoGame.Framework.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Stardew Valley">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Stardew Valley\Stardew Valley.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="StardewModdingAPI">
+      <HintPath>..\..\..\..\Program Files (x86)\Steam\steamapps\common\Stardew Valley\StardewModdingAPI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
