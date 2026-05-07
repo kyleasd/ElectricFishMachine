@@ -9,27 +9,39 @@ namespace WaterBubbleMod
     {
         private static readonly Random random = new Random();
 
-        public static List<int> GetAvailableFishForLocation(GameLocation loc, string season, bool isGingerIsland = false, bool isLava = false)
+        public static List<int> GetAvailableFishForLocation(GameLocation loc, string season, bool isGingerIsland = false, bool isLava = false, int mineLevel = 0)
         {
             List<int> fishIds = new List<int>();
 
+            // 检查是否是矿井并且在特定层数
+            bool isMine = IsMineLocation(loc);
+            if (isMine && mineLevel > 0)
+            {
+                if (mineLevel == 20)
+                {
+                    // 矿井20层：鬼鱼、石鱼
+                    fishIds.Add(156); // 鬼鱼 (Ghostfish)
+                    fishIds.Add(158); // 石鱼 (Stonefish)
+                    return fishIds;
+                }
+                else if (mineLevel == 60)
+                {
+                    // 矿井60层：冰柱鱼
+                    fishIds.Add(161); // 冰柱鱼 (Ice Pip)
+                    return fishIds;
+                }
+                else if (mineLevel >= 100)
+                {
+                    // 矿井100层及以下：岩浆鳗鱼
+                    fishIds.Add(162); // 岩浆鳗鱼 (Lava Eel)
+                    return fishIds;
+                }
+            }
+
             if (isLava)
             {
-                int[] lavaFish = new int[] {
-                    156, // 鬼鱼 (Ghostfish) - 矿井20/60/100层
-                    158, // 石鱼 (Stonefish) - 矿井20层
-                    161, // 冰柱鱼 (Ice Pip) - 矿井60层
-                    162  // 岩浆鳗鱼 (Lava Eel) - 矿井100层/姜岛火山特有
-                };
-
-                fishIds.AddRange(lavaFish);
-
-                if (random.Next(100) < 15)
-                {
-                    int[] junkItems = new int[] { 152, 153, 157 };
-                    fishIds.Add(junkItems[random.Next(junkItems.Length)]);
-                }
-
+                // 岩浆区域（如姜岛火山）：只有岩浆鳗鱼
+                fishIds.Add(162); // 岩浆鳗鱼 (Lava Eel)
                 return fishIds;
             }
 
@@ -41,18 +53,9 @@ namespace WaterBubbleMod
 
                 if (isGingerIslandVolcano)
                 {
+                    // 姜岛火山区域：只有岩浆鳗鱼
                     gingerIslandFish = new int[] {
-                        128, // 河豚 (Pufferfish) - 姜岛海洋
-                        130, // 金枪鱼 (Tuna) - 姜岛海洋
-                        149, // 章鱼 (Octopus) - 姜岛海洋
-                        155, // 大海参 (Super Cucumber) - 姜岛海洋
-                        162, // 岩浆鳗鱼 (Lava Eel) - 姜岛火山特有
-                        267, // 比目鱼 (Flounder) - 姜岛海洋
-                        269, // 午夜鲤鱼 (Midnight Carp) - 姜岛淡水
-                        701, // 罗非鱼 (Tilapia) - 姜岛淡水
-                        836, // 黄貂鱼 (Stingray) - 姜岛海洋特有
-                        837, // 狮子鱼 (Lionfish) - 姜岛海洋特有
-                        838  // 蓝铁饼鱼 (Blue Discus) - 姜岛淡水特有
+                        162  // 岩浆鳗鱼 (Lava Eel) - 姜岛火山特有
                     };
                 }
                 else
@@ -206,6 +209,12 @@ namespace WaterBubbleMod
             string locationName = loc.Name.ToLower();
             return (locationName.Contains("island") || locationName.Contains("ginger")) &&
                    (locationName.Contains("volcano") || locationName.Contains("mountain"));
+        }
+
+        public static bool IsMineLocation(GameLocation loc)
+        {
+            string locationName = loc.Name.ToLower();
+            return locationName.Contains("mine") || loc is StardewValley.Locations.MineShaft;
         }
 
         public static bool IsLavaLocation(GameLocation loc)
@@ -377,7 +386,7 @@ namespace WaterBubbleMod
 
             foreach (int fishId in fishIds)
             {
-                if (fishTimeRanges.TryGetValue(fishId, out Tuple<int, int> timeRange))
+                if (fishTimeRanges.TryGetValue(fishId, out Tuple<int, int>? timeRange) && timeRange != null)
                 {
                     int startHour = timeRange.Item1;
                     int endHour = timeRange.Item2;

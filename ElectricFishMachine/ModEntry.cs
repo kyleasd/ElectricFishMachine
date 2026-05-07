@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework;
 using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
+using StardewValley.Locations;
 
 namespace WaterBubbleMod
 {
@@ -158,7 +159,14 @@ namespace WaterBubbleMod
             }
             bool isLava = FishDataHelper.IsLavaLocation(loc);
 
-            List<int> availableFishIds = FishDataHelper.GetAvailableFishForLocation(loc, season, isGingerIsland, isLava);
+            // 获取矿井层数
+            int mineLevel = 0;
+            if (loc is MineShaft mine)
+            {
+                mineLevel = mine.mineLevel;
+            }
+
+            List<int> availableFishIds = FishDataHelper.GetAvailableFishForLocation(loc, season, isGingerIsland, isLava, mineLevel);
             availableFishIds = FishDataHelper.FilterFishByTime(availableFishIds, currentHour);
 
             if (availableFishIds.Count == 0)
