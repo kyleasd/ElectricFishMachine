@@ -10,8 +10,6 @@ namespace WaterBubbleMod
 {
     public class ModEntry : Mod
     {
-        private bool wasNearWater = false;
-        private List<TemporaryAnimatedSprite> activeBubbles = new List<TemporaryAnimatedSprite>();
         private Random random = new Random();
 
         public override void Entry(IModHelper helper)
@@ -35,19 +33,6 @@ namespace WaterBubbleMod
             int tileY = (int)(player.Position.Y / 64);
 
             bool nearWater = IsNearWater(loc, tileX, tileY);
-
-            // 检测状态变化：从非水域进入水域
-            if (nearWater && !wasNearWater)
-            {
-                SpawnPersistentBubbles(loc, player);
-            }
-            // 检测状态变化：从水域离开
-            else if (!nearWater && wasNearWater)
-            {
-                ClearBubbles(loc);
-            }
-
-            wasNearWater = nearWater;
 
             if (nearWater)
             {
@@ -78,11 +63,6 @@ namespace WaterBubbleMod
             int tileX = (int)(player.Position.X / 64);
             int tileY = (int)(player.Position.Y / 64);
 
-            // 清除旧气泡
-            ClearBubbles(loc);
-
-            // 在周围水域生成持续的气泡：8列 × 8行（扩大范围）
-            int bubbleCount = 0;
             int waterCount = 0;
             for (int dx = -3; dx <= 4; dx++)  // 8列：左3到右4
             {
@@ -99,17 +79,6 @@ namespace WaterBubbleMod
                     if (isWater)
                     {
                         waterCount++;
-                    }
-
-                    if (isWater)
-                    {
-                        float bubbleX = x * 64 + 64;
-                        float bubbleY = y * 64 + 64;
-
-                        var bubble = CreatePersistentBubble(bubbleX, bubbleY);
-                        loc.temporarySprites.Add(bubble);
-                        activeBubbles.Add(bubble);
-                        bubbleCount++;
                     }
                 }
             }
@@ -185,6 +154,7 @@ namespace WaterBubbleMod
             Vector2 position = new Vector2(x, y);
             Game1.createItemDebris(fishItem, position, -1, loc);
 
+            // 创建鱼跳跃的水花动画
             var splash = new TemporaryAnimatedSprite(
                 "TileSheets\\animations",
                 new Rectangle(0, 3264, 64, 64),
@@ -202,42 +172,7 @@ namespace WaterBubbleMod
                 totalNumberOfLoops = 1,
                 interval = 150f
             };
-
             loc.temporarySprites.Add(splash);
-        }
-
-        private TemporaryAnimatedSprite CreatePersistentBubble(float x, float y)
-        {
-            // 创建持续的气泡动画效果
-            var bubble = new TemporaryAnimatedSprite(
-                "TileSheets\\animations",
-                new Rectangle(0, 3200, 64, 64),  // 气泡动画位置
-                new Vector2(x, y),
-                false,
-                0.01f,
-                Color.White
-            )
-            {
-                scale = 0.5f + (float)(random.NextDouble() * 0.3),  // 随机大小 0.5-0.8
-                motion = new Vector2(0, -0.5f),  // 向上漂浮
-                alphaFade = 0.002f,
-                layerDepth = 0.0001f,
-                animationLength = 8,
-                totalNumberOfLoops = 999999,  // 几乎无限循环
-                interval = 200f
-            };
-            
-            return bubble;
-        }
-
-        private void ClearBubbles(GameLocation loc)
-        {
-            // 清除所有活动的气泡
-            foreach (var bubble in activeBubbles)
-            {
-                loc.temporarySprites.Remove(bubble);
-            }
-            activeBubbles.Clear();
         }
     }
 }
