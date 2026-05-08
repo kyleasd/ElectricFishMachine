@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using StardewValley;
 
-namespace WaterBubbleMod
+namespace ElectricFishMachine
 {
     public static class FishDataHelper
     {

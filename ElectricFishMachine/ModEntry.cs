@@ -6,7 +6,7 @@ using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Locations;
 
-namespace WaterBubbleMod
+namespace ElectricFishMachine
 {
     public class ModEntry : Mod
     {
