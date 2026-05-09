@@ -22,6 +22,7 @@ MOD_DIR="/d/Program Files (x86)/Steam/steamapps/common/Stardew Valley/Mods/Elect
 mkdir -p "$MOD_DIR"
 cp -f "bin/Release/net6.0/ElectricFishMachine.dll" "$MOD_DIR/"
 cp -f "manifest.json" "$MOD_DIR/"
+cp -rf "bin/Release/net6.0/assets" "$MOD_DIR/"
 echo "文件复制完成！"
 echo ""
 
