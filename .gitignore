@@ -457,3 +457,6 @@ Temporary Items
 *.bak
 *.backup
 *.old
+
+# Local .NET tools (e.g. dotnet tool install --tool-path .tools)
+.tools/
