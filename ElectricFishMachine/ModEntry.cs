@@ -21,11 +21,11 @@ namespace ElectricFishMachine
         /// <summary>在水边且满足电鱼条件时，每隔多少帧尝试扣除 1 个电池组（约 60 帧 = 1 秒）。</summary>
         private const int ElectricBatteryDrainIntervalFrames = 180;
 
-        /// <summary>电鱼激活时每多少帧受到一次电击伤害（与电池倒计时一样在水边才递减）。</summary>
-        private const int ElectricFishHealthDrainIntervalFrames = 1;
+        /// <summary>在水边电鱼激活时，每隔多少帧受到一次电击伤害（约 60 帧 ≈ 1 秒 @60fps）。</summary>
+        private const int ElectricFishHealthDrainIntervalFrames = 120;
 
-        /// <summary>每次电击扣除的生命值（不低于 0；原版会在生命归零时处理晕倒）。</summary>
-        private const int ElectricFishHealthDamagePerPulse = 1;
+        /// <summary>每次电击扣除的生命值（原版生命归零会晕倒）。</summary>
+        private const int ElectricFishHealthDamagePerPulse = 8;
 
         /// <summary>离开电鱼资格时重置；在水边持续使用时递减。</summary>
         private int _electricHealthDrainCooldownRemaining = ElectricFishHealthDrainIntervalFrames;
@@ -63,6 +63,11 @@ namespace ElectricFishMachine
                     Monitor.Log("已获得「电鱼机」。", LogLevel.Info);
                 });
 
+            helper.ConsoleCommands.Add(
+                "efm_set_fishing_level",
+                "测试用：同步设置钓鱼等级与经验（0–10）。例：efm_set_fishing_level 1",
+                OnConsoleSetFishingLevel);
+
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
         }
 
@@ -76,6 +81,44 @@ namespace ElectricFishMachine
                 if (item is FishingRod rod)
                     CustomToolData.MigrateElectricRodBatteryFromLegacySecondSlot(rod);
             }
+        }
+
+        /// <summary>控制台：efm_set_fishing_level &lt;0-10&gt;，同步钓鱼经验/等级并清钓鱼专精（测试用）。</summary>
+        private void OnConsoleSetFishingLevel(string command, string[] args)
+        {
+            if (!Context.IsWorldReady)
+            {
+                Monitor.Log("请先加载存档再使用该命令。", LogLevel.Warn);
+                return;
+            }
+
+            Farmer who = Game1.player;
+            if (!who.IsLocalPlayer)
+            {
+                Monitor.Log("仅本地玩家可用。", LogLevel.Warn);
+                return;
+            }
+
+            if (args.Length == 0 || !int.TryParse(args[0].Trim(), out int level) || level < 0 || level > 10)
+            {
+                Monitor.Log("用法：efm_set_fishing_level <0-10>  例：efm_set_fishing_level 1", LogLevel.Warn);
+                return;
+            }
+
+            int xp = level <= 0 ? 0 : Farmer.getBaseExperienceForLevel(level);
+            who.experiencePoints[Farmer.fishingSkill] = xp;
+            who.fishingLevel.Value = level;
+
+            foreach (int p in new[] { 6, 7, 8, 9, 10, 11 })
+                who.professions.Remove(p);
+
+            for (int i = who.newLevels.Count - 1; i >= 0; i--)
+            {
+                if (who.newLevels[i].X == Farmer.fishingSkill)
+                    who.newLevels.RemoveAt(i);
+            }
+
+            Monitor.Log($"钓鱼已设为 {level} 级（经验 {xp}，已清除钓鱼专精与待弹升级条）。", LogLevel.Info);
         }
 
         private void OnUpdateTicked(object? sender, UpdateTickedEventArgs e)
@@ -113,6 +156,7 @@ namespace ElectricFishMachine
                          && CustomToolData.TryConsumeOneBatteryCharge(rod))
                 {
                     _electricBatteryDrainCooldownRemaining = ElectricBatteryDrainIntervalFrames;
+                    OnElectricFishBatteryUnitConsumed(player);
                 }
 
                 if (_electricHealthDrainCooldownRemaining > 0)
@@ -130,6 +174,38 @@ namespace ElectricFishMachine
                 return;
 
             SpawnFishJump(loc, player);
+        }
+
+        /// <summary>
+        /// 电鱼机每成功消耗 1 份电池组电量时调用：立刻加钓鱼经验（数值与技能页「向下一级」进度条上约一格相当）。
+        /// </summary>
+        private static void OnElectricFishBatteryUnitConsumed(Farmer player)
+        {
+            if (!player.IsLocalPlayer)
+                return;
+
+            int xp = GetFishingXpForOneSkillMenuBarSegment(player);
+            if (xp > 0)
+                player.gainExperience(Farmer.fishingSkill, xp);
+        }
+
+        /// <summary>与技能页面向下一级进度条上约一格（五分之一段）相当的经验值。</summary>
+        private static int GetFishingXpForOneSkillMenuBarSegment(Farmer who)
+        {
+            int lvl = who.fishingLevel.Value;
+            int span;
+            if (lvl >= 10)
+            {
+                span = Farmer.getBaseExperienceForLevel(10) - Farmer.getBaseExperienceForLevel(9);
+            }
+            else
+            {
+                int floorXp = lvl > 0 ? Farmer.getBaseExperienceForLevel(lvl) : 0;
+                int ceilXp = Farmer.getBaseExperienceForLevel(lvl + 1);
+                span = Math.Max(1, ceilXp - floorXp);
+            }
+
+            return Math.Max(1, span / 5);
         }
 
         /// <summary>电击扣血：仅本地玩家，避免联机误伤。</summary>
