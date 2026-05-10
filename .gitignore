@@ -460,3 +460,6 @@ Temporary Items
 
 # Local .NET tools (e.g. dotnet tool install --tool-path .tools)
 .tools/
+
+# Local decompile / scratch output
+_tmp_*/

@@ -34,6 +34,7 @@ namespace ElectricFishMachine
         {
             Monitor.Log("电鱼机MOD已加载", LogLevel.Info);
             CustomToolData.Register(helper);
+            ElectricFishMachineRecipeAndShop.Register(helper);
 
             Harmony harmony = new(ModManifest.UniqueID);
             harmony.PatchAll(Assembly.GetExecutingAssembly());
