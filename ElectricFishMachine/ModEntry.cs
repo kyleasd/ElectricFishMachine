@@ -148,7 +148,7 @@ namespace ElectricFishMachine
                 return;
             }
 
-            if (nearWater)
+            if (nearWater && Game1.game1 is { IsActive: true })
             {
                 if (_electricBatteryDrainCooldownRemaining > 0)
                     _electricBatteryDrainCooldownRemaining--;
@@ -173,7 +173,8 @@ namespace ElectricFishMachine
             if (!nearWater || !CustomToolData.PlayerCanElectricFish(player))
                 return;
 
-            SpawnFishJump(loc, player);
+            if (Game1.game1 is { IsActive: true })
+                SpawnFishJump(loc, player);
         }
 
         /// <summary>
