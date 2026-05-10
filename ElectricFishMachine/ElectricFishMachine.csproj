@@ -10,12 +10,21 @@
     <EnableHarmony>true</EnableHarmony>
   </PropertyGroup>
 
+  <!-- 发布 Release 到 N 网时不需要 .pdb；本地 Debug 仍默认带符号便于调试 -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <!-- 若有贴图/音频等再放 assets 下并取消注释；无文件时不要 Include，否则输出里易出现空 assets 目录 -->
+  <!--
   <ItemGroup>
     <None Include="assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
+  -->
 
 </Project>

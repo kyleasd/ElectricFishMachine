@@ -32,7 +32,6 @@ namespace ElectricFishMachine
 
         public override void Entry(IModHelper helper)
         {
-            Monitor.Log("电鱼机MOD已加载", LogLevel.Info);
             CustomToolData.Register(helper);
             ElectricFishMachineRecipeAndShop.Register(helper);
 
@@ -296,10 +295,79 @@ namespace ElectricFishMachine
             float fishY = randomTile.Y * 64 + 32;
 
             // 创建鱼跳跃动画
-            CreateFishJumpAnimation(loc, fishX, fishY);
+            CreateFishJumpAnimation(loc, fishX, fishY, player);
         }
 
-        private void CreateFishJumpAnimation(GameLocation loc, float x, float y)
+        /// <summary>
+        /// 电鱼机生成物为「鱼」时按钓鱼等级提高银/金/铱星概率（0 级几乎全普通，10 级高星明显增多）。
+        /// </summary>
+        private int RollElectricFishQualityByFishingLevel(int fishingLevel)
+        {
+            int lvl = Math.Clamp(fishingLevel, 0, 10);
+            int r = random.Next(100);
+
+            if (lvl >= 10)
+            {
+                if (r < 28)
+                    return 4;
+                if (r < 58)
+                    return 2;
+                if (r < 83)
+                    return 1;
+                return 0;
+            }
+
+            if (lvl >= 8)
+            {
+                if (r < 16)
+                    return 4;
+                if (r < 46)
+                    return 2;
+                if (r < 78)
+                    return 1;
+                return 0;
+            }
+
+            if (lvl >= 6)
+            {
+                if (r < 6)
+                    return 4;
+                if (r < 34)
+                    return 2;
+                if (r < 72)
+                    return 1;
+                return 0;
+            }
+
+            if (lvl >= 4)
+            {
+                if (r < 18)
+                    return 2;
+                if (r < 58)
+                    return 1;
+                return 0;
+            }
+
+            if (lvl >= 2)
+            {
+                if (r < 8)
+                    return 2;
+                if (r < 38)
+                    return 1;
+                return 0;
+            }
+
+            if (lvl >= 1)
+            {
+                if (r < 15)
+                    return 1;
+                return 0;
+            }
+
+            return 0;
+        }
+
+        private void CreateFishJumpAnimation(GameLocation loc, float x, float y, Farmer farmer)
         {
             // 检查游戏是否暂停（鼠标移出窗口或有菜单打开）
             if (Game1.activeClickableMenu != null || (Game1.options.pauseWhenOutOfFocus && !Game1.game1.IsActive))
@@ -382,6 +450,12 @@ namespace ElectricFishMachine
             }
 
             fishItem.Stack = 1;
+
+            if (fishItem is StardewValley.Object obj && obj.Category == StardewValley.Object.FishCategory)
+            {
+                obj.Quality = RollElectricFishQualityByFishingLevel(Math.Min(farmer.FishingLevel, 10));
+            }
+
             Vector2 position = new Vector2(x, y);
             Game1.createItemDebris(fishItem, position, -1, loc);
 
