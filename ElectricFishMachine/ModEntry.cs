@@ -131,10 +131,8 @@ namespace ElectricFishMachine
             Farmer player = Game1.player;
             GameLocation loc = player.currentLocation;
 
-            int tileX = (int)(player.Position.X / 64);
-            int tileY = (int)(player.Position.Y / 64);
-            bool nearWater = IsNearWater(loc, tileX, tileY);
             bool canElectric = CustomToolData.PlayerCanElectricFish(player);
+            bool activeElectric = CustomToolData.IsPlayerActivelyElectricFishing(player);
 
             ElectricFishBatteryHud.IntervalFrames = ElectricBatteryDrainIntervalFrames;
 
@@ -147,7 +145,7 @@ namespace ElectricFishMachine
                 return;
             }
 
-            if (nearWater && Game1.game1 is { IsActive: true })
+            if (activeElectric && Game1.game1 is { IsActive: true })
             {
                 if (_electricBatteryDrainCooldownRemaining > 0)
                     _electricBatteryDrainCooldownRemaining--;
@@ -169,7 +167,7 @@ namespace ElectricFishMachine
 
             ElectricFishBatteryHud.CooldownRemaining = _electricBatteryDrainCooldownRemaining;
 
-            if (!nearWater || !CustomToolData.PlayerCanElectricFish(player))
+            if (!activeElectric)
                 return;
 
             if (Game1.game1 is { IsActive: true })
@@ -219,24 +217,6 @@ namespace ElectricFishMachine
 
             player.health = Math.Max(0, player.health - ElectricFishHealthDamagePerPulse);
             player.currentLocation.playSound("ow");
-        }
-
-        private bool IsNearWater(GameLocation loc, int tileX, int tileY)
-        {
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dy = -1; dy <= 1; dy++)
-                {
-                    int x = tileX + dx;
-                    int y = tileY + dy;
-
-                    if (loc.isWaterTile(x, y))
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
         }
 
         private void SpawnPersistentBubbles(GameLocation loc, Farmer player)
