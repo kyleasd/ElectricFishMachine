@@ -19,21 +19,24 @@ namespace ElectricFishMachine
             {
                 if (mineLevel == 20)
                 {
-                    // 矿井20层：鬼鱼、石鱼
+                    // 矿井20层：鬼鱼、石鱼、洞穴凝胶（与原版矿井地下水一致）
                     fishIds.Add(156); // 鬼鱼 (Ghostfish)
                     fishIds.Add(158); // 石鱼 (Stonefish)
+                    fishIds.Add(874); // 洞穴凝胶 (Cave Jelly)
                     return fishIds;
                 }
                 else if (mineLevel == 60)
                 {
-                    // 矿井60层：冰柱鱼
+                    // 矿井60层：冰柱鱼、洞穴凝胶
                     fishIds.Add(161); // 冰柱鱼 (Ice Pip)
+                    fishIds.Add(874); // 洞穴凝胶 (Cave Jelly)
                     return fishIds;
                 }
                 else if (mineLevel >= 100)
                 {
-                    // 矿井100层及以下：岩浆鳗鱼
+                    // 矿井100层及以下：岩浆鳗鱼、洞穴凝胶
                     fishIds.Add(162); // 岩浆鳗鱼 (Lava Eel)
+                    fishIds.Add(874); // 洞穴凝胶 (Cave Jelly)
                     return fishIds;
                 }
             }
