@@ -7,6 +7,9 @@ using StardewModdingAPI;
 using StardewModdingAPI.Events;
 using StardewValley;
 using StardewValley.Locations;
+using StardewValley.Quests;
+using StardewValley.SpecialOrders;
+using StardewValley.SpecialOrders.Objectives;
 using StardewValley.Tools;
 
 namespace ElectricFishMachine
@@ -439,6 +442,18 @@ namespace ElectricFishMachine
             Vector2 position = new Vector2(x, y);
             Game1.createItemDebris(fishItem, position, -1, loc);
 
+            // 与原版收竿一致登记钓获，解锁 Collections 钓鱼图鉴。
+            // 不判断 IsLocalPlayer：联机访客、分屏等场景下「正在电鱼」的农民也应写入其本人图鉴（各客户端各写自己的 Farmer）。
+            if (!string.IsNullOrEmpty(fishItem.QualifiedItemId))
+            {
+                string qid = fishItem.QualifiedItemId;
+                farmer.caughtFish(qid, 1, false, 1);
+                // 日记里类型为 Fishing/ 的任务（如威利「钓 3 条沙鱼」）由 FishingQuest 单独计数，见 Modding:Quest_data。
+                NotifyJournalFishingQuestsForCatch(farmer, qid);
+                // 镇长家特别订单里 Type: Fish（如钓 20 条河鱼/海鱼）只认「钓鱼」；原版走 FishObjective.OnFishCaught，见 Modding:Special_orders。
+                NotifySpecialOrderFishObjectives(farmer, fishItem);
+            }
+
             // 创建鱼跳跃的水花动画
             var splash = new TemporaryAnimatedSprite(
                 "TileSheets\\animations",
@@ -458,6 +473,43 @@ namespace ElectricFishMachine
                 interval = 150f
             };
             loc.temporarySprites.Add(splash);
+        }
+
+        /// <summary>
+        /// <see cref="Farmer.caughtFish"/> 会更新图鉴等，但 Data/Quests 中前缀为 <c>Fishing/</c> 的日记任务由
+        /// <see cref="FishingQuest"/> 通过 <see cref="FishingQuest.OnFishCaught"/> 推进（与收竿路径一致）。
+        /// </summary>
+        /// <seealso href="https://stardewvalleywiki.com/Modding:Quest_data">Modding:Quest data</seealso>
+        private static void NotifyJournalFishingQuestsForCatch(Farmer farmer, string qualifiedFishItemId)
+        {
+            foreach (Quest? quest in farmer.questLog)
+            {
+                if (quest is FishingQuest fishingQuest)
+                    fishingQuest.OnFishCaught(qualifiedFishItemId, numberCaught: 1, size: 1, probe: false);
+            }
+        }
+
+        /// <summary>
+        /// Data/SpecialOrders 中 <c>Type: Fish</c> 与 Collect 类似，但 Wiki 写明「只统计通过钓鱼获得的鱼」；
+        /// 游戏在 <see cref="FishObjective.OnFishCaught"/> 内按鱼的上下文标签匹配 <c>AcceptedContextTags</c> 并推进计数。
+        /// </summary>
+        /// <seealso href="https://stardewvalleywiki.com/Modding:Special_orders">Modding:Special orders</seealso>
+        private static void NotifySpecialOrderFishObjectives(Farmer farmer, Item fishItem)
+        {
+            if (farmer.team?.specialOrders == null)
+                return;
+
+            foreach (SpecialOrder? order in farmer.team.specialOrders)
+            {
+                if (order?.objectives == null)
+                    continue;
+
+                foreach (OrderObjective objective in order.objectives)
+                {
+                    if (objective is FishObjective fishObjective)
+                        fishObjective.OnFishCaught(farmer, fishItem);
+                }
+            }
         }
     }
 }
