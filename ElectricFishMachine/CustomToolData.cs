@@ -204,7 +204,13 @@ internal static class CustomToolData
     {
         if (e.NameWithoutLocale.IsEquivalentTo(ElectricFishMachineContent.ElectricFishMachineTexture))
         {
-            e.LoadFrom(LoadElectricFishMachineTexture, AssetLoadPriority.Exclusive);
+            e.LoadFrom(() => LoadScaledTextureFromAssetFile("ElectricFishMachine.png"), AssetLoadPriority.Exclusive);
+            return;
+        }
+
+        if (e.NameWithoutLocale.IsEquivalentTo(ElectricFishMachineContent.ElectricFishMachineRecipeTexture))
+        {
+            e.LoadFrom(() => LoadScaledTextureFromAssetFile("ElectricFishMachineRecipe.png"), AssetLoadPriority.Exclusive);
             return;
         }
 
@@ -293,12 +299,12 @@ internal static class CustomToolData
         return null;
     }
 
-    private static Texture2D LoadElectricFishMachineTexture()
+    private static Texture2D LoadScaledTextureFromAssetFile(string fileName)
     {
         if (_modHelper == null)
             throw new InvalidOperationException("ElectricFishMachine: Register must run before texture load.");
 
-        string path = Path.Combine(_modHelper.DirectoryPath, "assets", "ElectricFishMachine.png");
+        string path = Path.Combine(_modHelper.DirectoryPath, "assets", fileName);
         using FileStream stream = File.OpenRead(path);
         GraphicsDevice graphicsDevice = Game1.graphics.GraphicsDevice;
         Texture2D raw = Texture2D.FromStream(graphicsDevice, stream);

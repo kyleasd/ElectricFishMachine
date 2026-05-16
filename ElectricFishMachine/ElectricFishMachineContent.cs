@@ -10,6 +10,9 @@ internal static class ElectricFishMachineContent
     /// <summary>SMAPI 注入的电鱼机贴图资产名，对应 assets/ElectricFishMachine.png。</summary>
     internal const string ElectricFishMachineTexture = "Mods/" + UniqueId + "/ElectricFishMachine";
 
+    /// <summary>商店「配方」条目菜单图标，对应 assets/ElectricFishMachineRecipe.png（单帧 16×16）。</summary>
+    internal const string ElectricFishMachineRecipeTexture = "Mods/" + UniqueId + "/ElectricFishMachineRecipe";
+
     /// <summary>单帧像素宽高；贴图为横向条带：<c>宽 = SpriteFrameWidth * SpriteFrameCount</c>，高 <see cref="SpriteFrameHeight"/>。</summary>
     internal const int SpriteFrameWidth = 16;
 
