@@ -262,7 +262,7 @@ namespace ElectricFishMachine
                     int x = tileX + dx;
                     int y = tileY + dy;
 
-                    if (loc.isWaterTile(x, y))
+                    if (loc.isTileFishable(x, y))
                     {
                         waterTiles.Add(new Point(x, y));
                     }
@@ -358,79 +358,25 @@ namespace ElectricFishMachine
                 return;
             }
 
-            string season = Game1.currentSeason;
-            int currentHour = Game1.timeOfDay / 100;
-            bool isGingerIsland = FishDataHelper.IsGingerIslandLocation(loc);
-            if (isGingerIsland)
-            {
-                season = "summer";
-            }
-            bool isLava = FishDataHelper.IsLavaLocation(loc);
-
-            // 获取矿井层数
-            int mineLevel = 0;
-            if (loc is MineShaft mine)
-            {
-                mineLevel = mine.mineLevel;
-            }
-
-            List<int> availableFishIds = FishDataHelper.GetAvailableFishForLocation(loc, season, isGingerIsland, isLava, mineLevel);
-            availableFishIds = FishDataHelper.FilterFishByTime(availableFishIds, currentHour);
-
-            if (availableFishIds.Count == 0)
-            {
+            Point bobberTile = new Point((int)(x / 64), (int)(y / 64));
+            if (!loc.isTileFishable(bobberTile.X, bobberTile.Y))
                 return;
+
+            VanillaFishingQuery.BobberFishingInfo fishingInfo = VanillaFishingQuery.QueryBobberTile(loc, bobberTile, farmer);
+            if (Monitor.IsVerbose)
+            {
+                string candidates = fishingInfo.PossibleQualifiedItemIds.Count > 0
+                    ? string.Join(", ", fishingInfo.PossibleQualifiedItemIds)
+                    : "(无/仅矿井等特殊规则)";
+                Monitor.VerboseLog(
+                    $"电鱼格 ({bobberTile.X},{bobberTile.Y}) 钓区={fishingInfo.FishAreaId ?? "默认"}"
+                    + (fishingInfo.FishAreaDisplayName != null ? $" ({fishingInfo.FishAreaDisplayName})" : "")
+                    + $" 水深={fishingInfo.WaterDepth} 季节={fishingInfo.SeasonForLocation} 候选={candidates}");
             }
 
-            // 传说鱼ID列表
-            HashSet<int> legendaryFishIds = new HashSet<int> { 163, 159, 160, 775, 898, 899, 900, 902 };
-
-            // 分离传说鱼和普通鱼
-            List<int> legendaryFish = availableFishIds.Where(id => legendaryFishIds.Contains(id)).ToList();
-            List<int> normalFish = availableFishIds.Where(id => !legendaryFishIds.Contains(id)).ToList();
-
-            int fishId;
-
-            // 传说鱼0.01%概率生成
-            if (legendaryFish.Count > 0 && random.Next(10000) < 1)
-            {
-                fishId = legendaryFish[random.Next(legendaryFish.Count)];
-            }
-            else if (normalFish.Count > 0)
-            {
-                fishId = normalFish[random.Next(normalFish.Count)];
-            }
-            else
-            {
-                fishId = availableFishIds[random.Next(availableFishIds.Count)];
-            }
-            Item fishItem;
-
-            if (fishId == 134)
-            {
-                fishItem = ItemRegistry.Create("(O)SeaJelly");
-            }
-            else if (fishId == 873)
-            {
-                fishItem = ItemRegistry.Create("(O)RiverJelly");
-            }
-            else if (fishId == 874)
-            {
-                fishItem = ItemRegistry.Create("(O)CaveJelly");
-            }
-            else if (fishId == -1)
-            {
-                fishItem = ItemRegistry.Create("(O)Goby");
-            }
-            else
-            {
-                fishItem = ItemRegistry.Create("(O)" + fishId);
-            }
-
+            Item? fishItem = VanillaFishingQuery.RollCatchAtTile(loc, bobberTile, farmer);
             if (fishItem == null)
-            {
                 return;
-            }
 
             fishItem.Stack = 1;
 
@@ -448,6 +394,9 @@ namespace ElectricFishMachine
             {
                 string qid = fishItem.QualifiedItemId;
                 farmer.caughtFish(qid, 1, false, 1);
+                // 海/河/洞穴凝胶等使用 UseFishCaughtSeededRandom，依赖 PreciseFishCaught（原版收竿在 FishingRod 里递增）。
+                if (CountsForPreciseFishCaughtStat(fishItem))
+                    farmer.stats.Increment("PreciseFishCaught", 1);
                 // 日记里类型为 Fishing/ 的任务（如威利「钓 3 条沙鱼」）由 FishingQuest 单独计数，见 Modding:Quest_data。
                 NotifyJournalFishingQuestsForCatch(farmer, qid);
                 // 镇长家特别订单里 Type: Fish（如钓 20 条河鱼/海鱼）只认「钓鱼」；原版走 FishObjective.OnFishCaught，见 Modding:Special_orders。
@@ -473,6 +422,13 @@ namespace ElectricFishMachine
                 interval = 150f
             };
             loc.temporarySprites.Add(splash);
+        }
+
+        /// <summary>与 <see cref="StardewValley.Tools.FishingRod"/> 收竿统计一致，供凝胶等鱼种的种子随机使用。</summary>
+        private static bool CountsForPreciseFishCaughtStat(Item item)
+        {
+            return item.Category == StardewValley.Object.FishCategory
+                || item.HasContextTag("counts_as_fish_catch");
         }
 
         /// <summary>
