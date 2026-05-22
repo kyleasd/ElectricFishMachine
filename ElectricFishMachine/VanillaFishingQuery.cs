@@ -23,7 +23,22 @@ namespace ElectricFishMachine
         /// <summary>该格支持蟹笼产出时，单次电鱼走蟹笼掉落表的概率（电鱼频率高，不宜每次都用蟹笼表）。</summary>
         private const float CrabPotLootMixChance = 0.25f;
 
+        /// <summary>电鱼时传说鱼王独立池概率（四季鱼王 + 变种鲤鱼；绕过已钓过限制，可重复刷）。</summary>
+        private const double LegendaryElectricFishChance = 0.05;
+
+        /// <summary>下水道等，全季节（原版地点规则，非季节绑定）。</summary>
+        private const string MutantCarpQualifiedId = "(O)682";
+
         private const int LuremasterProfessionId = 10;
+
+        /// <summary>四季传说之鱼（春传说之鱼、夏绯红鱼、秋翻车鱼、冬冰川鱼）。</summary>
+        private static readonly (Season Season, string QualifiedItemId)[] SeasonLegendaryFish =
+        {
+            (Season.Spring, "(O)163"),   // Legend
+            (Season.Summer, "(O)159"),   // Crimsonfish
+            (Season.Fall, "(O)160"),     // Angler
+            (Season.Winter, "(O)775"),   // Glacierfish
+        };
 
         /// <summary>某一水面格的原版钓鱼上下文。</summary>
         internal readonly struct BobberFishingInfo
@@ -60,7 +75,12 @@ namespace ElectricFishMachine
                 fishAreaDisplayName = location.GetFishingAreaDisplayName(areaId);
             }
 
-            IReadOnlyList<string> possibleRod = BuildPossibleQualifiedItemIds(location, bobber, waterDepth, farmer);
+            IReadOnlyList<string> possibleRod = BuildPossibleQualifiedItemIds(
+                location,
+                bobber,
+                waterDepth,
+                farmer,
+                FishCandidateQueryOptions.Default);
             IReadOnlyList<string> possibleCrabPot = BuildPossibleCrabPotQualifiedItemIds(location, bobber);
             var possible = possibleRod
                 .Concat(possibleCrabPot)
@@ -88,6 +108,13 @@ namespace ElectricFishMachine
 
             Vector2 bobber = TileToBobber(tile);
 
+            if (Game1.random.NextDouble() < LegendaryElectricFishChance)
+            {
+                Item? legendary = TryRollLegendaryElectricFish(location, bobber, farmer);
+                if (legendary != null)
+                    return legendary;
+            }
+
             if (HasCrabPotFishForTile(location, bobber) && Game1.random.NextDouble() < CrabPotLootMixChance)
             {
                 Item? crabPotLoot = TryRollCrabPotCatch(location, bobber, farmer);
@@ -108,6 +135,80 @@ namespace ElectricFishMachine
 
         private static int GetWaterDepth() => ElectricFishWaterDepth;
 
+        /// <summary>查询候选鱼表时的选项；鱼王 5% 池忽略捕获次数与 Data/Locations 概率，改由 <see cref="LegendaryElectricFishChance"/> 单独掷骰。</summary>
+        private readonly struct FishCandidateQueryOptions
+        {
+            public bool IgnoreCatchLimit { get; init; }
+
+            public bool IgnoreSpawnChance { get; init; }
+
+            public static FishCandidateQueryOptions Default => default;
+
+            public static FishCandidateQueryOptions ForLegendaryElectricFish { get; } = new()
+            {
+                IgnoreCatchLimit = true,
+                IgnoreSpawnChance = true,
+            };
+        }
+
+        /// <summary>
+        /// 5% 独立概率：在该格原版可出的鱼王中随机一种（四季鱼王 + 变种鲤鱼；季节/天气/钓区等同 <see cref="BuildPossibleQualifiedItemIds"/>）。
+        /// 不检查 <see cref="Farmer.fishCaught"/>，可重复刷。
+        /// </summary>
+        private static Item? TryRollLegendaryElectricFish(GameLocation location, Vector2 bobberTile, Farmer farmer)
+        {
+            var eligible = new List<string>(5);
+
+            string? seasonalId = GetSeasonLegendaryQualifiedId(Game1.GetSeasonForLocation(location));
+            if (seasonalId != null && IsLegendaryEligibleAtBobber(location, bobberTile, farmer, seasonalId))
+                eligible.Add(seasonalId);
+
+            if (IsLegendaryEligibleAtBobber(location, bobberTile, farmer, MutantCarpQualifiedId))
+                eligible.Add(MutantCarpQualifiedId);
+
+            if (eligible.Count == 0)
+                return null;
+
+            string picked = eligible[Game1.random.Next(eligible.Count)];
+            Item item = ItemRegistry.Create(picked);
+            item.SetTempData("IsBossFish", value: true);
+            return item;
+        }
+
+        private static string? GetSeasonLegendaryQualifiedId(Season season)
+        {
+            foreach ((Season fishSeason, string qid) in SeasonLegendaryFish)
+            {
+                if (fishSeason == season)
+                    return qid;
+            }
+
+            return null;
+        }
+
+        /// <summary>该格是否满足 Data/Locations + Data/Fish 对指定鱼王的全部条件（不含捕获次数、不含原版概率）。</summary>
+        private static bool IsLegendaryEligibleAtBobber(
+            GameLocation location,
+            Vector2 bobberTile,
+            Farmer farmer,
+            string legendaryQualifiedId)
+        {
+            IReadOnlyList<string> candidates = BuildPossibleQualifiedItemIds(
+                location,
+                bobberTile,
+                GetWaterDepth(),
+                farmer,
+                FishCandidateQueryOptions.ForLegendaryElectricFish);
+
+            foreach (string qid in candidates)
+            {
+                if (string.Equals(qid, legendaryQualifiedId, StringComparison.OrdinalIgnoreCase))
+                    return true;
+            }
+
+            return false;
+        }
+
         private static string GetBaitQualifiedId(Farmer farmer)
         {
             if (farmer.CurrentTool is not FishingRod rod)
@@ -124,7 +225,8 @@ namespace ElectricFishMachine
             GameLocation location,
             Vector2 bobberTile,
             int waterDepth,
-            Farmer farmer)
+            Farmer farmer,
+            FishCandidateQueryOptions options)
         {
             LocationData? locationData = location.GetData();
             Dictionary<string, string> allFishData = DataLoader.Fish(Game1.content);
@@ -188,15 +290,18 @@ namespace ElectricFishMachine
                 if (spawn.RequireMagicBait && !usingMagicBait)
                     continue;
 
-                float chance = spawn.GetChance(
-                    hasCuriosityLure,
-                    farmer.DailyLuck,
-                    farmer.LuckLevel,
-                    (value, modifiers, mode) => Utility.ApplyQuantityModifiers(value, modifiers, mode, location),
-                    spawn.ItemId == targetedBaitItemId);
+                if (!options.IgnoreSpawnChance)
+                {
+                    float chance = spawn.GetChance(
+                        hasCuriosityLure,
+                        farmer.DailyLuck,
+                        farmer.LuckLevel,
+                        (value, modifiers, mode) => Utility.ApplyQuantityModifiers(value, modifiers, mode, location),
+                        spawn.ItemId == targetedBaitItemId);
 
-                if (chance <= 0f)
-                    continue;
+                    if (chance <= 0f)
+                        continue;
+                }
 
                 if (spawn.Condition != null && !GameStateQuery.CheckConditions(spawn.Condition, location, null, null, null, null, ignoreQueryKeys))
                     continue;
@@ -216,7 +321,8 @@ namespace ElectricFishMachine
                 if (resolved == null)
                     continue;
 
-                if (spawn.CatchLimit > -1
+                if (!options.IgnoreCatchLimit
+                    && spawn.CatchLimit > -1
                     && farmer.fishCaught.TryGetValue(resolved.QualifiedItemId, out int[]? caught)
                     && caught[0] >= spawn.CatchLimit)
                     continue;

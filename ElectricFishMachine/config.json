@@ -1,4 +1,5 @@
 {
   "OnlyIridiumQuality": false,
-  "ElectricFishRange": 3
+  "ElectricFishRange": 3,
+  "FilterTrash": false
 }

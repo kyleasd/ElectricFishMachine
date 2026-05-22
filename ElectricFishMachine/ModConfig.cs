@@ -15,4 +15,9 @@ public class ModConfig
 
     /// <summary>将 <see cref="ElectricFishRange"/> 限制在 [3, 10]。</summary>
     public int ClampedElectricFishRange => Math.Clamp(ElectricFishRange, 3, 10);
+
+    /// <summary>
+    /// 为 <c>true</c> 时跳过钓鱼垃圾（<c>trash_item</c> 标签：垃圾、浮木、破眼镜等），重新掷骰直至非垃圾或达到重试上限。
+    /// </summary>
+    public bool FilterTrash { get; set; } = false;
 }

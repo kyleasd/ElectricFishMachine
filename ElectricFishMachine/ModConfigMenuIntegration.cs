@@ -43,5 +43,12 @@ internal static class ModConfigMenuIntegration
             val => mod.Config.ElectricFishRange = val,
             min: 3,
             max: 10);
+
+        api.RegisterSimpleOption(
+            mod.ModManifest,
+            "过滤垃圾",
+            "开启后，电鱼不会刷出垃圾、浮木、破眼镜等（带 trash_item 标签的钓获）。",
+            () => mod.Config.FilterTrash,
+            val => mod.Config.FilterTrash = val);
     }
 }

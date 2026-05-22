@@ -34,6 +34,9 @@ namespace ElectricFishMachine
         /// <summary>每次电击扣除的生命值（原版生命归零会晕倒）。</summary>
         private const int ElectricFishHealthDamagePerPulse = 8;
 
+        /// <summary>开启过滤垃圾时，单格最多重新掷骰次数。</summary>
+        private const int FilterTrashMaxRollAttempts = 12;
+
         /// <summary>离开电鱼资格时重置；在水边持续使用时递减。</summary>
         private int _electricHealthDrainCooldownRemaining = ElectricFishHealthDrainIntervalFrames;
 
@@ -415,7 +418,7 @@ namespace ElectricFishMachine
                     + $" 水深={fishingInfo.WaterDepth} 季节={fishingInfo.SeasonForLocation} 候选={candidates}");
             }
 
-            Item? fishItem = VanillaFishingQuery.RollCatchAtTile(loc, bobberTile, farmer);
+            Item? fishItem = RollCatchRespectingTrashFilter(loc, bobberTile, farmer);
             if (fishItem == null)
                 return;
 
@@ -466,6 +469,26 @@ namespace ElectricFishMachine
             };
             loc.temporarySprites.Add(splash);
         }
+
+        private Item? RollCatchRespectingTrashFilter(GameLocation loc, Point bobberTile, Farmer farmer)
+        {
+            int maxAttempts = _config.FilterTrash ? FilterTrashMaxRollAttempts : 1;
+
+            for (int attempt = 0; attempt < maxAttempts; attempt++)
+            {
+                Item? item = VanillaFishingQuery.RollCatchAtTile(loc, bobberTile, farmer);
+                if (item == null)
+                    return null;
+
+                if (!_config.FilterTrash || !IsFishingTrash(item))
+                    return item;
+            }
+
+            return null;
+        }
+
+        /// <summary>原版钓鱼垃圾（<c>trash_item</c>）：Trash、Driftwood、破眼镜等。</summary>
+        private static bool IsFishingTrash(Item item) => item.HasContextTag("trash_item");
 
         /// <summary>与 <see cref="StardewValley.Tools.FishingRod"/> 收竿统计一致，供凝胶等鱼种的种子随机使用。</summary>
         private static bool CountsForPreciseFishCaughtStat(Item item)
