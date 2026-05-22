@@ -16,7 +16,11 @@ namespace ElectricFishMachine
 {
     public class ModEntry : Mod
     {
+        private ModConfig _config = null!;
+
         private Random random = new Random();
+
+        private readonly List<Point> _fishableTilesBuffer = new();
 
         /// <summary>离开水边或停用后重置；在水边持续使用时每满一轮间隔扣 1 份电池。</summary>
         private int _electricBatteryDrainCooldownRemaining = ElectricBatteryDrainIntervalFrames;
@@ -33,8 +37,12 @@ namespace ElectricFishMachine
         /// <summary>离开电鱼资格时重置；在水边持续使用时递减。</summary>
         private int _electricHealthDrainCooldownRemaining = ElectricFishHealthDrainIntervalFrames;
 
+        internal ModConfig Config => _config;
+
         public override void Entry(IModHelper helper)
         {
+            _config = helper.ReadConfig<ModConfig>();
+
             CustomToolData.Register(helper);
             ElectricFishMachineRecipeAndShop.Register(helper);
 
@@ -70,7 +78,23 @@ namespace ElectricFishMachine
                 "测试用：同步设置钓鱼等级与经验（0–10）。例：efm_set_fishing_level 1",
                 OnConsoleSetFishingLevel);
 
+            helper.Events.GameLoop.GameLaunched += OnGameLaunched;
             helper.Events.GameLoop.UpdateTicked += OnUpdateTicked;
+        }
+
+        private void OnGameLaunched(object? sender, GameLaunchedEventArgs e)
+        {
+            ModConfigMenuIntegration.Register(this);
+        }
+
+        internal void ResetConfigToDefault()
+        {
+            _config = new ModConfig();
+        }
+
+        internal void SaveConfigToFile()
+        {
+            Helper.WriteConfig(_config);
         }
 
         private static void OnSaveLoaded(object? sender, SaveLoadedEventArgs e)
@@ -222,63 +246,86 @@ namespace ElectricFishMachine
             player.currentLocation.playSound("ow");
         }
 
-        private void SpawnPersistentBubbles(GameLocation loc, Farmer player)
+        /// <summary>
+        /// 以 <paramref name="player"/> 站立点（脚底像素坐标）为圆心，收集切比雪夫半径内的可钓鱼格。
+        /// 半径 = 配置 <see cref="ModConfig.ElectricFishRange"/>（[3, 10]，默认 3）。
+        /// </summary>
+        private void CollectFishableTilesAroundPlayer(GameLocation loc, Farmer player, List<Point> output)
         {
-            int tileX = (int)(player.Position.X / 64);
-            int tileY = (int)(player.Position.Y / 64);
+            output.Clear();
 
-            int waterCount = 0;
-            for (int dx = -3; dx <= 4; dx++)  // 8列：左3到右4
+            Vector2 standing = player.getStandingPosition();
+            float centerTileX = standing.X / 64f;
+            float centerTileY = standing.Y / 64f;
+            int radius = _config.ClampedElectricFishRange;
+
+            int minTileX = (int)Math.Floor(centerTileX) - radius;
+            int maxTileX = (int)Math.Floor(centerTileX) + radius;
+            int minTileY = (int)Math.Floor(centerTileY) - radius;
+            int maxTileY = (int)Math.Floor(centerTileY) + radius;
+
+            for (int x = minTileX; x <= maxTileX; x++)
             {
-                for (int dy = -3; dy <= 4; dy++)  // 8行：上3到下4
+                for (int y = minTileY; y <= maxTileY; y++)
                 {
-                    int x = tileX + dx;
-                    int y = tileY + dy;
-
-                    // 跳过距离玩家小于2格的区域（确保气泡距离人物至少2格远）
-                    if (Math.Max(Math.Abs(dx), Math.Abs(dy)) < 2)
+                    float cheb = Math.Max(
+                        Math.Abs(x + 0.5f - centerTileX),
+                        Math.Abs(y + 0.5f - centerTileY));
+                    if (cheb > radius)
                         continue;
 
-                    bool isWater = loc.isWaterTile(x, y);
-                    if (isWater)
-                    {
-                        waterCount++;
-                    }
+                    if (loc.isTileFishable(x, y))
+                        output.Add(new Point(x, y));
                 }
             }
         }
 
-        private void SpawnFishJump(GameLocation loc, Farmer player)
+        /// <summary>在范围内按距人物中心的距离加权随机选一格。</summary>
+        private Point PickFishableTileWeightedTowardPlayer(List<Point> tiles, float centerTileX, float centerTileY)
         {
-            // 获取当前水域的格子列表
-            List<Point> waterTiles = new List<Point>();
-            int tileX = (int)(player.Position.X / 64);
-            int tileY = (int)(player.Position.Y / 64);
+            if (tiles.Count == 1)
+                return tiles[0];
 
-            for (int dx = -2; dx <= 3; dx++)
+            double totalWeight = 0;
+            foreach (Point tile in tiles)
             {
-                for (int dy = -2; dy <= 3; dy++)
-                {
-                    int x = tileX + dx;
-                    int y = tileY + dy;
-
-                    if (loc.isTileFishable(x, y))
-                    {
-                        waterTiles.Add(new Point(x, y));
-                    }
-                }
+                float cheb = Math.Max(
+                    Math.Abs(tile.X + 0.5f - centerTileX),
+                    Math.Abs(tile.Y + 0.5f - centerTileY));
+                totalWeight += 1.0 / (1.0 + cheb);
             }
 
-            if (waterTiles.Count == 0)
+            double roll = random.NextDouble() * totalWeight;
+            foreach (Point tile in tiles)
+            {
+                float cheb = Math.Max(
+                    Math.Abs(tile.X + 0.5f - centerTileX),
+                    Math.Abs(tile.Y + 0.5f - centerTileY));
+                roll -= 1.0 / (1.0 + cheb);
+                if (roll <= 0)
+                    return tile;
+            }
+
+            return tiles[tiles.Count - 1];
+        }
+
+        /// <summary>每帧在配置范围内加权随机一格刷鱼（离人物越近概率越大）。</summary>
+        private void SpawnFishJump(GameLocation loc, Farmer player)
+        {
+            if (Game1.activeClickableMenu != null || (Game1.options.pauseWhenOutOfFocus && !Game1.game1.IsActive))
                 return;
 
-            // 随机选择一个水域格子
-            Point randomTile = waterTiles[random.Next(waterTiles.Count)];
-            float fishX = randomTile.X * 64 + 32;
-            float fishY = randomTile.Y * 64 + 32;
+            CollectFishableTilesAroundPlayer(loc, player, _fishableTilesBuffer);
+            if (_fishableTilesBuffer.Count == 0)
+                return;
 
-            // 创建鱼跳跃动画
-            CreateFishJumpAnimation(loc, fishX, fishY, player);
+            Vector2 standing = player.getStandingPosition();
+            float centerTileX = standing.X / 64f;
+            float centerTileY = standing.Y / 64f;
+            Point tile = PickFishableTileWeightedTowardPlayer(_fishableTilesBuffer, centerTileX, centerTileY);
+            float fishX = tile.X * 64 + 32;
+            float fishY = tile.Y * 64 + 32;
+            SpawnFishAndEffectsAtTile(loc, fishX, fishY, player);
         }
 
         /// <summary>
@@ -350,14 +397,8 @@ namespace ElectricFishMachine
             return 0;
         }
 
-        private void CreateFishJumpAnimation(GameLocation loc, float x, float y, Farmer farmer)
+        private void SpawnFishAndEffectsAtTile(GameLocation loc, float x, float y, Farmer farmer)
         {
-            // 检查游戏是否暂停（鼠标移出窗口或有菜单打开）
-            if (Game1.activeClickableMenu != null || (Game1.options.pauseWhenOutOfFocus && !Game1.game1.IsActive))
-            {
-                return;
-            }
-
             Point bobberTile = new Point((int)(x / 64), (int)(y / 64));
             if (!loc.isTileFishable(bobberTile.X, bobberTile.Y))
                 return;
@@ -382,7 +423,9 @@ namespace ElectricFishMachine
 
             if (fishItem is StardewValley.Object obj && obj.Category == StardewValley.Object.FishCategory)
             {
-                obj.Quality = RollElectricFishQualityByFishingLevel(Math.Min(farmer.FishingLevel, 10));
+                obj.Quality = _config.OnlyIridiumQuality
+                    ? 4
+                    : RollElectricFishQualityByFishingLevel(Math.Min(farmer.FishingLevel, 10));
             }
 
             Vector2 position = new Vector2(x, y);

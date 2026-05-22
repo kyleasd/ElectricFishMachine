@@ -20,6 +20,10 @@
     <PackageReference Include="Pathoschild.Stardew.ModBuildConfig" Version="4.4.0" PrivateAssets="all" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <!-- 若有贴图/音频等再放 assets 下并取消注释；无文件时不要 Include，否则输出里易出现空 assets 目录 -->
   <!--
   <ItemGroup>
