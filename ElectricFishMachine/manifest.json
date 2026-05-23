@@ -1,7 +1,7 @@
 {
   "Name": "ElectricFishMachine",
   "Author": "鹈鹕镇的小凯",
-  "Version": "1.1.0",
+  "Version": "1.2.0",
   "Description": "电鱼机",
   "UniqueID": "Kyle.ElectricFishMachine",
   "EntryDll": "ElectricFishMachine.dll",
