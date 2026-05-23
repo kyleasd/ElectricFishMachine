@@ -1,5 +1,5 @@
+using GenericModConfigMenu;
 using StardewModdingAPI;
-using StardewModdingAPI.Events;
 
 namespace ElectricFishMachine;
 
@@ -19,36 +19,38 @@ internal static class ModConfigMenuIntegration
             return;
         }
 
-        api.RegisterModConfig(
+        api.Register(
             mod.ModManifest,
-            revertToDefault: () => mod.ResetConfigToDefault(),
-            saveToFile: mod.SaveConfigToFile);
+            mod.ResetConfigToDefault,
+            mod.SaveConfigToFile,
+            titleScreenOnly: false);
 
-        api.SetDefaultIngameOptinValue(mod.ModManifest, optedIn: true);
-
-        api.RegisterLabel(mod.ModManifest, "电鱼机", "调整电鱼机刷鱼行为。");
-
-        api.RegisterSimpleOption(
+        api.AddSectionTitle(
             mod.ModManifest,
-            "仅铱星品质",
-            "开启后，电鱼机刷出的鱼类固定为铱星品质（不再按钓鱼等级随机银/金/铱）。",
+            () => "电鱼机",
+            () => "调整电鱼机刷鱼行为。");
+
+        api.AddBoolOption(
+            mod.ModManifest,
             () => mod.Config.OnlyIridiumQuality,
-            val => mod.Config.OnlyIridiumQuality = val);
+            val => mod.Config.OnlyIridiumQuality = val,
+            () => "仅铱星品质",
+            () => "开启后，电鱼机刷出的鱼类固定为铱星品质（不再按钓鱼等级随机银/金/铱）。");
 
-        api.RegisterClampedOption(
+        api.AddNumberOption(
             mod.ModManifest,
-            "电鱼范围",
-            "以人物为中心的水域扫描半径（格），3–10，默认 3。",
             () => mod.Config.ElectricFishRange,
             val => mod.Config.ElectricFishRange = val,
+            () => "电鱼范围",
+            () => "以人物为中心的水域扫描半径（格），3–10，默认 3。",
             min: 3,
             max: 10);
 
-        api.RegisterSimpleOption(
+        api.AddBoolOption(
             mod.ModManifest,
-            "过滤垃圾",
-            "开启后，电鱼不会刷出垃圾、浮木、破眼镜等（带 trash_item 标签的钓获）。",
             () => mod.Config.FilterTrash,
-            val => mod.Config.FilterTrash = val);
+            val => mod.Config.FilterTrash = val,
+            () => "过滤垃圾",
+            () => "开启后，电鱼不会刷出垃圾、浮木、破眼镜等（带 trash_item 标签的钓获）。");
     }
 }
