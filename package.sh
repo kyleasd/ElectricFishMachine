@@ -13,7 +13,7 @@ MOD_DIR="$GAME_DIR/Mods/ElectricFishMachine"
 
 cd "$PROJECT_DIR"
 
-echo "[1/2] 正在 Release 构建（ModBuildConfig 会自动部署到 Mods 并打 zip）..."
+echo "[1/2] 正在 Release 构建（ModBuildConfig 部署到 Mods，并生成扁平 zip）..."
 dotnet build -c Release
 if [ $? -ne 0 ]; then
     echo "编译失败！"
@@ -36,5 +36,6 @@ echo ""
 echo "========================================"
 echo "  完成！"
 echo "  Mod 目录: $MOD_DIR"
-echo "  发布 zip: $PROJECT_DIR/bin/Release/net6.0/ElectricFishMachine*.zip"
+echo "  发布 zip: $PROJECT_DIR/bin/Release/net6.0/ElectricFishMachine.zip"
+echo "  安装: 解压到 Mods/ElectricFishMachine/ 文件夹内"
 echo "========================================"

@@ -8,12 +8,15 @@
     <AssemblyName>ElectricFishMachine</AssemblyName>
     <Version>1.2.0</Version>
     <EnableHarmony>true</EnableHarmony>
+    <ModFolderName>ElectricFishMachine</ModFolderName>
   </PropertyGroup>
 
   <!-- 发布 Release 到 N 网时不需要 .pdb；本地 Debug 仍默认带符号便于调试 -->
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
     <DebugType>none</DebugType>
     <DebugSymbols>false</DebugSymbols>
+    <!-- 禁用 ModBuildConfig 的「版本号外层 + 模组内层」zip，改由下方目标打扁平包 -->
+    <EnableModZip>false</EnableModZip>
   </PropertyGroup>
 
   <ItemGroup>
@@ -30,5 +33,19 @@
     <None Include="assets\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   -->
+
+  <!--
+    Release zip 根目录即为 manifest.json、dll 等（无 ElectricFishMachine 1.2.0/ElectricFishMachine 双层目录）。
+    安装：在 Mods 下新建 ElectricFishMachine 文件夹，将 zip 解压到该文件夹内。
+  -->
+  <Target Name="CreateFlatReleaseZip" AfterTargets="AfterBuild" Condition="'$(Configuration)' == 'Release'">
+    <PropertyGroup>
+      <_ModDeployDir>$(GameModsPath)\$(ModFolderName)</_ModDeployDir>
+      <_ReleaseZip>$(TargetDir)$(ModFolderName).zip</_ReleaseZip>
+    </PropertyGroup>
+    <Message Importance="high" Text="[ElectricFishMachine] 生成扁平发布 zip: $(_ReleaseZip)" />
+    <Delete Files="$(_ReleaseZip)" Condition="Exists('$(_ReleaseZip)')" />
+    <Exec Command="powershell -NoProfile -Command &quot;Compress-Archive -Path '$(_ModDeployDir)\*' -DestinationPath '$(_ReleaseZip)' -Force&quot;" />
+  </Target>
 
 </Project>
